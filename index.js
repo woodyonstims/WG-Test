@@ -15,14 +15,15 @@ const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
 // --- GOOGLE SHEETS SETUP ---
 async function sheets() {
-  const jwt = new google.auth.JWT(
-    process.env.GOOGLE_CLIENT_EMAIL,
-    null,
-    process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    ["https://www.googleapis.com/auth/spreadsheets"]
-  );
-  await jwt.authorize();
-  return google.sheets({ version: "v4", auth: jwt });
+  const creds = JSON.parse(process.env.GOOGLE_CREDENTIALS_JSON);
+
+  const auth = new google.auth.GoogleAuth({
+    credentials: creds,
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
+  });
+
+  const client = await auth.getClient();
+  return google.sheets({ version: "v4", auth: client });
 }
 
 async function readQuestions() {
@@ -241,3 +242,4 @@ app.post("/whatsapp/webhook", async (req, res) => {
 app.get("/", (req, res) => res.send("Watson-Glaser WhatsApp Bot is running!"));
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
+
