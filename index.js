@@ -87,6 +87,18 @@ async function setSession(key, val, ttl = 3600) {
   }
 }
 
+// --- SEND MESSAGE (Twilio WhatsApp) ---
+async function sendWA(to, body) {
+  // twilio + FROM are the ones you already defined near the top:
+  // const twilio = Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+  // const FROM = process.env.TWILIO_WHATSAPP_FROM;  // e.g. "whatsapp:+14155238886"
+  return twilio.messages.create({
+    from: FROM,
+    to,
+    body,
+  });
+}
+
 // --- QUESTION LOGIC ---
 const SECTIONS = ["Inference", "Assumptions", "Deduction", "Interpretation", "Arguments"];
 
@@ -241,5 +253,6 @@ app.post("/whatsapp/webhook", async (req, res) => {
 app.get("/", (req, res) => res.send("Watson-Glaser WhatsApp Bot is running!"));
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
+
 
 
