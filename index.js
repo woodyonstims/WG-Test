@@ -53,6 +53,31 @@ async function readQuestions() {
   }));
 }
 
+// --- APPEND ATTEMPT ---
+async function appendAttempt(a) {
+  const s = await sheets();
+  await s.spreadsheets.values.append({
+    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    range: "Attempts!A2",
+    valueInputOption: "USER_ENTERED",
+    requestBody: {
+      values: [
+        [
+          a.attempt_id,
+          a.user_id,
+          a.qid,
+          a.section,
+          a.selected,
+          a.correct,
+          a.is_correct ? "TRUE" : "FALSE",
+          a.latency_ms,
+          new Date().toISOString(),
+        ],
+      ],
+    },
+  });
+}
+
 // --- SESSION HELPERS (with in-memory fallback) ---
 const memStore = new Map();
 
@@ -253,6 +278,7 @@ app.post("/whatsapp/webhook", async (req, res) => {
 app.get("/", (req, res) => res.send("Watson-Glaser WhatsApp Bot is running!"));
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
+
 
 
 
