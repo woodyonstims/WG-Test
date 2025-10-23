@@ -33,6 +33,26 @@ async function sheets() {
   return _sheetsClient;
 }
 
+// --- READ QUESTIONS ---
+async function readQuestions() {
+  const s = await sheets();
+  const { data } = await s.spreadsheets.values.get({
+    spreadsheetId: process.env.GOOGLE_SHEET_ID,
+    range: "Questions!A2:H",
+  });
+
+  return (data.values || []).map((r) => ({
+    id: r[0],
+    section: r[1],
+    stem: r[2],
+    passage: r[3],
+    options: JSON.parse(r[4]),
+    correct: Number(r[5]),
+    rationale: r[6],
+    difficulty: r[7] || "M",
+  }));
+}
+
 // --- SESSION HELPERS (with in-memory fallback) ---
 const memStore = new Map();
 
@@ -221,4 +241,5 @@ app.post("/whatsapp/webhook", async (req, res) => {
 app.get("/", (req, res) => res.send("Watson-Glaser WhatsApp Bot is running!"));
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
+
 
