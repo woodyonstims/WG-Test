@@ -13,58 +13,24 @@ const twilio = Twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TO
 const FROM = process.env.TWILIO_WHATSAPP_FROM;
 const SHEET_ID = process.env.GOOGLE_SHEET_ID;
 
-// --- GOOGLE SHEETS SETUP ---
+// --- GOOGLE SHEETS SETUP (secret-file method) ---
+let _sheetsClient = null;
+
 async function sheets() {
-  const jwt = new google.auth.JWT(
-    process.env.GOOGLE_CLIENT_EMAIL,
-    null,
-    process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
-    ["https://www.googleapis.com/auth/spreadsheets"]
-  );
-  await jwt.authorize();
-  return google.sheets({ version: "v4", auth: jwt });
-}
+  if (_sheetsClient) return _sheetsClient;
 
-async function readQuestions() {
-  const s = await sheets();
-  const { data } = await s.spreadsheets.values.get({
-    spreadsheetId: SHEET_ID,
-    range: "Questions!A2:H",
-  });
-  return (data.values || []).map((r) => ({
-    id: r[0],
-    section: r[1],
-    stem: r[2],
-    passage: r[3],
-    options: JSON.parse(r[4]),
-    correct: Number(r[5]),
-    rationale: r[6],
-    difficulty: r[7] || "M",
-  }));
-}
+  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    throw new Error("GOOGLE_APPLICATION_CREDENTIALS not set");
+  }
 
-async function appendAttempt(a) {
-  const s = await sheets();
-  await s.spreadsheets.values.append({
-    spreadsheetId: SHEET_ID,
-    range: "Attempts!A2",
-    valueInputOption: "USER_ENTERED",
-    requestBody: {
-      values: [
-        [
-          a.attempt_id,
-          a.user_id,
-          a.qid,
-          a.section,
-          a.selected,
-          a.correct,
-          a.is_correct ? "TRUE" : "FALSE",
-          a.latency_ms,
-          new Date().toISOString(),
-        ],
-      ],
-    },
+  const auth = new google.auth.GoogleAuth({
+    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS, // e.g. /etc/secrets/creds.json
+    scopes: ["https://www.googleapis.com/auth/spreadsheets"],
   });
+
+  const client = await auth.getClient();
+  _sheetsClient = google.sheets({ version: "v4", auth: client });
+  return _sheetsClient;
 }
 
 // --- SESSION HELPERS (with in-memory fallback) ---
@@ -255,3 +221,4 @@ app.post("/whatsapp/webhook", async (req, res) => {
 app.get("/", (req, res) => res.send("Watson-Glaser WhatsApp Bot is running!"));
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
+
